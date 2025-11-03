@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', 'Helvetica', sans-serif;
+            background: linear-gradient(to bottom right, #2c5f8d, #3d7fb8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-wrapper {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.28);
+            text-align: center;
+        }
+
+        .game-heading {
+            color: #2c5f8d;
+            margin-bottom: 24px;
+            font-size: 36px;
+            font-weight: 700;
+        }
+
+        .game-message {
+            margin-bottom: 24px;
+            font-size: 22px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .mode-selector {
+            margin-bottom: 24px;
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+        }
+
+        .mode-option {
+            padding: 12px 24px;
+            border: 2px solid #2c5f8d;
+            background: white;
+            color: #2c5f8d;
+            border-radius: 9px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+
+        .mode-option.active-mode {
+            background: #2c5f8d;
+            color: white;
+        }
+
+        .mode-option:hover {
+            transform: translateY(-2px);
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 112px);
+            gap: 10px;
+            margin: 30px auto;
+        }
+
+        .grid-cell {
+            width: 112px;
+            height: 112px;
+            background: #ecf0f1;
+            border: none;
+            border-radius: 10px;
+            font-size: 48px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #2c3e50;
+            transition: all 0.2s;
+        }
+
+        .grid-cell:hover:not(:disabled) {
+            background: #d5dbdb;
+            transform: scale(1.04);
+        }
+
+        .grid-cell:disabled {
+            cursor: default;
+        }
+
+        .mark-x {
+            color: #2c5f8d;
+        }
+
+        .mark-o {
+            color: #c23866;
+        }
+
+        .winner-cell {
+            background: #16a085 !important;
+            color: white !important;
+        }
+
+        .new-game-btn {
+            padding: 14px 34px;
+            border: none;
+            border-radius: 24px;
+            background: #cb4335;
+            color: white;
+            font-size: 17px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.3s;
+        }
+
+        .new-game-btn:hover {
+            background: #b03a2e;
+            transform: translateY(-2px);
+        }
+
+        .score-display {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 24px;
+            font-size: 17px;
+        }
+
+        .score-card {
+            padding: 12px 20px;
+            background: #ecf0f1;
+            border-radius: 9px;
+            font-weight: 700;
+        }
+
+        @media (max-width: 500px) {
+            .game-grid {
+                grid-template-columns: repeat(3, 90px);
+            }
+
+            .grid-cell {
+                width: 90px;
+                height: 90px;
+                font-size: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-wrapper">
+        <h1 class="game-heading">🎮 Tic Tac Toe</h1>
+        <div class="mode-selector">
+            <button class="mode-option active-mode" onclick="changeMode('two-player')">Two Players</button>
+            <button class="mode-option" onclick="changeMode('ai-player')">Play vs AI</button>
+        </div>
+        <div class="game-message" id="message">Player X's Turn</div>
+        <div class="game-grid" id="gameGrid">
+            <button class="grid-cell" onclick="makeMove(0)"></button>
+            <button class="grid-cell" onclick="makeMove(1)"></button>
+            <button class="grid-cell" onclick="makeMove(2)"></button>
+            <button class="grid-cell" onclick="makeMove(3)"></button>
+            <button class="grid-cell" onclick="makeMove(4)"></button>
+            <button class="grid-cell" onclick="makeMove(5)"></button>
+            <button class="grid-cell" onclick="makeMove(6)"></button>
+            <button class="grid-cell" onclick="makeMove(7)"></button>
+            <button class="grid-cell" onclick="makeMove(8)"></button>
+        </div>
+        <button class="new-game-btn" onclick="startNewGame()">New Game</button>
+        <div class="score-display">
+            <div class="score-card">X Wins: <span id="xWins">0</span></div>
+            <div class="score-card">Draws: <span id="draws">0</span></div>
+            <div class="score-card">O Wins: <span id="oWins">0</span></div>
+        </div>
+    </div>
+
+    <script>
+        var gameState = ['', '', '', '', '', '', '', '', ''];
+        var currentMark = 'X';
+        var gameRunning = true;
+        var playMode = 'two-player';
+        var scoreData = {X: 0, O: 0, draw: 0};
+
+        var cells = document.querySelectorAll('.grid-cell');
+        var message = document.getElementById('message');
+
+        var winningLines = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8],
+            [0, 3, 6], [1, 4, 7], [2, 5, 8],
+            [0, 4, 8], [2, 4, 6]
+        ];
+
+        function changeMode(mode) {
+            playMode = mode;
+            var buttons = document.querySelectorAll('.mode-option');
+            buttons.forEach(function(btn) {
+                btn.classList.remove('active-mode');
+            });
+            event.target.classList.add('active-mode');
+            startNewGame();
+        }
+
+        function makeMove(position) {
+            if (gameState[position] !== '' || !gameRunning) return;
+            
+            placeMarkAt(position, currentMark);
+            
+            if (gameRunning && playMode === 'ai-player' && currentMark === 'O') {
+                setTimeout(aiMove, 500);
+            }
+        }
+
+        function placeMarkAt(position, mark) {
+            gameState[position] = mark;
+            cells[position].textContent = mark;
+            cells[position].classList.add(mark === 'X' ? 'mark-x' : 'mark-o');
+            cells[position].disabled = true;
+            
+            evaluateGame();
+        }
+
+        function aiMove() {
+            var availableSpots = [];
+            for (var i = 0; i < gameState.length; i++) {
+                if (gameState[i] === '') availableSpots.push(i);
+            }
+            
+            var nextMove = checkWinningMove('O');
+            if (nextMove === -1) nextMove = checkWinningMove('X');
+            if (nextMove === -1 && gameState[4] === '') nextMove = 4;
+            if (nextMove === -1) {
+                var corners = [0, 2, 6, 8];
+                for (var j = 0; j < corners.length; j++) {
+                    if (gameState[corners[j]] === '') {
+                        nextMove = corners[j];
+                        break;
+                    }
+                }
+            }
+            if (nextMove === -1) {
+                nextMove = availableSpots[Math.floor(Math.random() * availableSpots.length)];
+            }
+            
+            if (nextMove !== -1) placeMarkAt(nextMove, 'O');
+        }
+
+        function checkWinningMove(mark) {
+            for (var i = 0; i < winningLines.length; i++) {
+                var line = winningLines[i];
+                var a = line[0], b = line[1], c = line[2];
+                
+                var markCount = 0;
+                var emptySpot = -1;
+                
+                if (gameState[a] === mark) markCount++;
+                else if (gameState[a] === '') emptySpot = a;
+                
+                if (gameState[b] === mark) markCount++;
+                else if (gameState[b] === '') emptySpot = b;
+                
+                if (gameState[c] === mark) markCount++;
+                else if (gameState[c] === '') emptySpot = c;
+                
+                if (markCount === 2 && emptySpot !== -1) return emptySpot;
+            }
+            return -1;
+        }
+
+        function evaluateGame() {
+            var hasWinner = false;
+            var winningCells = [];
+
+            for (var i = 0; i < winningLines.length; i++) {
+                var line = winningLines[i];
+                var a = line[0], b = line[1], c = line[2];
+                
+                if (gameState[a] && gameState[a] === gameState[b] && gameState[a] === gameState[c]) {
+                    hasWinner = true;
+                    winningCells = [a, b, c];
+                    break;
+                }
+            }
+
+            if (hasWinner) {
+                message.textContent = 'Player ' + currentMark + ' Wins! 🎉';
+                for (var j = 0; j < winningCells.length; j++) {
+                    cells[winningCells[j]].classList.add('winner-cell');
+                }
+                scoreData[currentMark]++;
+                refreshScores();
+                gameRunning = false;
+                return;
+            }
+
+            var isFull = true;
+            for (var k = 0; k < gameState.length; k++) {
+                if (gameState[k] === '') {
+                    isFull = false;
+                    break;
+                }
+            }
+
+            if (isFull) {
+                message.textContent = "It's a Draw! 🤝";
+                scoreData.draw++;
+                refreshScores();
+                gameRunning = false;
+                return;
+            }
+
+            currentMark = currentMark === 'X' ? 'O' : 'X';
+            message.textContent = 'Player ' + currentMark + "'s Turn";
+        }
+
+        function refreshScores() {
+            document.getElementById('xWins').textContent = scoreData.X;
+            document.getElementById('oWins').textContent = scoreData.O;
+            document.getElementById('draws').textContent = scoreData.draw;
+        }
+
+        function startNewGame() {
+            gameState = ['', '', '', '', '', '', '', '', ''];
+            currentMark = 'X';
+            gameRunning = true;
+            message.textContent = "Player X's Turn";
+            
+            for (var i = 0; i < cells.length; i++) {
+                cells[i].textContent = '';
+                cells[i].disabled = false;
+                cells[i].classList.remove('mark-x', 'mark-o', 'winner-cell');
+            }
+        }
+    </script>
+</body>
+      </html>
